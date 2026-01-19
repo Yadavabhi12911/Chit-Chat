@@ -10,16 +10,20 @@ const userSchema = new mongoose.Schema({
         minlength: 3,
 
     },
-    email: {
-        type: String,
-        required: [true, "email is required"],
-        unique: [true, "email already exist"],
-        index: true
-    },
     username: {
-        type: String,
-        required: true,
-        unique: true
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+    },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
     },
     password: {
         type: String,
@@ -35,6 +39,10 @@ const userSchema = new mongoose.Schema({
     }
 
 }, { timestamps: true })
+
+
+userSchema.index({ email: 1 });
+userSchema.index({ username: 1 });
 
 
 userSchema.pre('save', async function () {
