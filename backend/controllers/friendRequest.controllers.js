@@ -100,10 +100,20 @@ const acceptFriendRequest = asyncHandler(async (req, res) => {
 
         const [ sender , receiver] = sortId(request.senderId, request.receiverId)
 
-        
+         await Friendship.create(
+      [
+        {
+           senderId: sender,
+          receiverId:receiver
+        },
+      ],
+      { session }
+    );
 
     } catch (error) {
-
+ await session.abortTransaction();
+    session.endSession();
+    throw error;
     }
 })
 
