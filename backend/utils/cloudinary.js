@@ -7,26 +7,26 @@ import fs from 'fs'
 
 
 cloudinary.config({
-      cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-      api_key: process.env.CLOUDINARY_API_KEY,
-      api_secret: process.env.CLOUDINARY_SECRET_KEY
-    });
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_SECRET_KEY
+});
 
 const uploadImageOnCloudinary = async (imageLocalPath) => {
 
     if (!imageLocalPath) return console.log(" path not available");
-    
+
     if (!fs.existsSync(imageLocalPath)) {
         throw new ApiError(400, "file not present at specified path")
     }
-    
+
     try {
-      
+
         const response = await cloudinary.uploader.upload(imageLocalPath, {
             folder: "ChitChat/users",
             resource_type: "image"
         })
-        
+
 
         console.log("image uploaded successfully");
 
@@ -45,6 +45,20 @@ const uploadImageOnCloudinary = async (imageLocalPath) => {
     }
 }
 
+const deleteImageFromCloudinary = async (publicId) => {
+
+    if (!publicId) throw new Error("No public ID provided for deletion");
+
+    try {
+        const result = await cloudinary.uploader.destroy(publicId);
+        return result;
+    } catch (error) {
+        throw new Error(`Cloudinary delete failed: ${error.message}`);
+    }
 
 
-export { uploadImageOnCloudinary}
+}
+
+
+
+export { uploadImageOnCloudinary, deleteImageFromCloudinary }
