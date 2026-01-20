@@ -27,4 +27,4 @@ friendRequestSchema.index(
 )
 
 
-export const Friendrequest = model("Friendrequest", friendRequestSchema)
+export const FriendRequest = mongoose.model("FriendRequest", friendRequestSchema)

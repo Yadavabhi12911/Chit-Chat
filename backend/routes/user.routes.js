@@ -1,6 +1,5 @@
-
 import { Router} from 'express'
-import { login, logout, register } from '../controllers/user.controllers.js'
+import { deletePhoto, login, logout, register, updatePhoto, refreshAccessToken } from '../controllers/user.controllers.js'
 import authenticate from '../middlewares/authenticate.middleware.js'
 import { upload } from '../middlewares/multer.middleware.js'
 
@@ -11,8 +10,12 @@ router.post("/login", login)
 
 
 router.post("/logout",authenticate, logout)
-
+router.post("/update-profile-photo",upload.single("newImage"), authenticate, updatePhoto)
+router.post("/delete-profile-photo", authenticate, deletePhoto)
+router.post('/refresh-token', refreshAccessToken)
 
 export default router
+
+
 
 

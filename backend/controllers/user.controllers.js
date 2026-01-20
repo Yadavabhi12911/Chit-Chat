@@ -2,7 +2,8 @@ import { User } from "../models/user.models.js";
 import asyncHandler from "../utils/AyncHandler.js"
 import ApiError from "../utils/ApiError.js"
 import ApiResponse from "../utils/ApiResponse.js"
-import { uploadImageOnCloudinary } from "../utils/cloudinary.js";
+import { deleteImageFromCloudinary, uploadImageOnCloudinary } from "../utils/cloudinary.js";
+import jwt from "jsonwebtoken";
 
 const generateAccessAndRefreshToken = async (userId) => {
 
@@ -29,10 +30,10 @@ const generateAccessAndRefreshToken = async (userId) => {
 
 const register = asyncHandler(async (req, res) => {
 
-    const { name, username, email, password, avatar } = req.body
+    const { name, username, email, password } = req.body
 
-         let imageLocalPath = req.file.path
-        if(!imageLocalPath) throw new ApiError(404, "no such image localPath found!")
+    let imageLocalPath = req.file.path
+    if (!imageLocalPath) throw new ApiError(404, "no such image localPath found!")
 
     let existingUser = await User.findOne({
         $or: [{ email }, { username }]
@@ -42,10 +43,7 @@ const register = asyncHandler(async (req, res) => {
         throw new ApiError(400, "user already exist")
     }
 
-    const image =  await uploadImageOnCloudinary(imageLocalPath)
-
-
-console.log(" image res --> ", image);
+    const image = await uploadImageOnCloudinary(imageLocalPath)
 
     const createUser = await User.create({
         name,
@@ -53,7 +51,7 @@ console.log(" image res --> ", image);
         email,
         password,
         avatar: {
-            secure_url : image.secure_url,
+            secure_url: image.secure_url,
             public_id: image.public_id
         }
     })
@@ -130,6 +128,110 @@ const logout = asyncHandler(async (req, res) => {
         )
 })
 
+const updatePhoto = asyncHandler(async (req, res) => {
+    const userId = req.myUser?._id
+
+    const imageLocalPath = req.file.path
+    if (!imageLocalPath) {
+        throw new ApiError(404, "no such image localPath found!")
+
+    }
+    const user = await User.findById(userId)
+
+    if (!user) {
+        throw new ApiError(404, "user not found")
+
+    }
+
+    const deleteImage = await deleteImageFromCloudinary(user?.avatar?.public_id)
 
 
-export { register, login, logout }
+    if (!deleteImage) {
+        throw new ApiError(500, "unable to delete image ")
+    }
+
+    const newImageUpload = await uploadImageOnCloudinary(imageLocalPath)
+
+    if (!newImageUpload) {
+        throw new ApiError(500, "error while uploading new image")
+    }
+
+
+    user.avatar = {
+        secure_url: newImageUpload.secure_url,
+        public_id: newImageUpload.public_id,
+    }
+    await user.save()
+
+
+    res.status(200).json(
+        new ApiResponse(200, { user }, "image updated successfully")
+    )
+
+})
+
+const deletePhoto = asyncHandler(async (req, res) => {
+    const userId = req?.myUser?._id
+
+    const user = await User.findById(userId)
+
+    if (!user) {
+        throw new ApiError(404, "user not found")
+    }
+
+    const imageDeleted = await deleteImageFromCloudinary(user?.avatar?.public_id)
+
+    if (!imageDeleted) {
+        throw new ApiError(500, "unable to delete image")
+    }
+
+    res.status(200).json(
+        new ApiResponse(200, "image deleted successfully")
+    )
+})
+
+const refreshAccessToken = asyncHandler(async (req, res) => {
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken
+
+    if (!incomingRefreshToken) {
+        throw new ApiError(401, "refresh token is required")
+    }
+
+    try {
+        const decodedToken = jwt.verify(incomingRefreshToken, process.env.REFRESH_TOKEN_SECRET)
+
+        const user = await User.findById(decodedToken?._id)
+
+        if (!user) {
+            throw new ApiError(401, "user not found")
+        }
+
+        if (incomingRefreshToken !== user?.refreshToken) {
+            throw new ApiError(401, "refresh token is expired or invalid")
+        }
+
+        const options = {
+            httpOnly: true,
+            secure: false,
+            maxAge: 15 * 60 * 1000
+        }
+
+        const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user?._id)
+
+        res.status(200)
+            .cookie("accessToken", accessToken, options)
+            .cookie("refreshToken", refreshToken, options)
+            .json(
+                new ApiResponse(200, { accessToken, refreshToken }, "access token refreshed successfully")
+            )
+
+    } catch (error) {
+        throw new ApiError(401, error?.message || "invalid refresh token")
+    }
+})
+
+
+
+
+
+export { register, login, logout, updatePhoto, deletePhoto, refreshAccessToken }

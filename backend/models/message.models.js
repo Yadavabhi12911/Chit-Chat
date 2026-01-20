@@ -28,7 +28,7 @@ const messageSchema = new Schema({
     expiredAt: {
         type: Date,
         required: true,
-        index: true
+        
     }
 }, { timestamps: true })
 
