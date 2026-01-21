@@ -3,10 +3,15 @@ import { Router } from "express"
 
 const router = Router()
 import authenticate   from "../middlewares/authenticate.middleware.js"
-import { sendFriendRequest } from "../controllers/friendRequest.controllers.js"
+import { acceptFriendRequest, getAllIncomingFriendRequest, getAllOutgoingFriendRequest, rejectFriendRequest, sendFriendRequest } from "../controllers/friendRequest.controllers.js"
 
 
 router.post("/friend-request",authenticate, sendFriendRequest)
+router.post("/friend-request/:id/accept", authenticate, acceptFriendRequest)
+router.post("/friend-request/:id/reject", authenticate, rejectFriendRequest)
+
+router.get("/friend-request/incoming", authenticate, getAllIncomingFriendRequest)
+router.get("/friend-request/outgoing", authenticate, getAllOutgoingFriendRequest)
 
 
 

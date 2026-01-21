@@ -2,7 +2,7 @@ import mongoose, { Schema} from "mongoose";
 
 const friendshipSchema = new Schema(
   {
-    sendId: {
+    senderId: {
       type: Schema.Types.ObjectId,
       ref: "User",
       required: true,
