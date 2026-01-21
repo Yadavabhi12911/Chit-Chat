@@ -5,10 +5,10 @@ import { Friendship } from '../models/friendship.models.js'
 import { User } from '../models/user.models.js'
 import ApiError from '../utils/ApiError.js'
 import ApiResponse from '../utils/ApiResponse.js'
-import ayncHandler from '../utils/AyncHandler.js'
+import asyncHandler from '../utils/AyncHandler.js'
 
 
-const sendFriendRequest = ayncHandler(async (req, res) => {
+const sendFriendRequest = asyncHandler(async (req, res) => {
 
     const senderId = req?.myUser?._id
     if (!senderId) {
@@ -31,7 +31,8 @@ const sendFriendRequest = ayncHandler(async (req, res) => {
         throw new ApiError(404, " RequestReceiver: user not found")
     }
 
-    if (requestSender === requestReceiver) {
+
+    if (requestSender._id.toString() === requestReceiver._id.toString()) {
         throw new ApiError(400, "you cannot send request to yourself")
     }
 
@@ -76,8 +77,8 @@ const acceptFriendRequest = asyncHandler(async (req, res) => {
     const currentUserId = req.myUser?._id
     const requestId = req.params?.id
 
-    const session = mongoose.startSession()
-    await session.startSession()
+    const session = await mongoose.startSession();
+    session.startTransaction()
 
     try {
 
@@ -86,37 +87,143 @@ const acceptFriendRequest = asyncHandler(async (req, res) => {
             throw new ApiError(404, "friend request not found")
         }
 
-        if (request.receiverId !== currentUserId) {
+        if (request.receiverId.toString() !== currentUserId.toString()) {
             throw new ApiError(401, "unauthorised access to accept this request")
         }
 
         if (request.status !== 'pending') {
-            throw new Error(409, "Friend request already processed");
+            throw new ApiError(409, "Friend request already processed");
         }
 
-        function sortId(a, b){
-         return a.toString() > b.toString() ? [a,b]  : [b,a]
+      
+        function sortId(a, b) {
+            return a.toString() < b.toString() ? [a, b] : [b, a]
         }
 
-        const [ sender , receiver] = sortId(request.senderId, request.receiverId)
+        const [sender, receiver] = sortId(request.senderId, request.receiverId)
 
-         await Friendship.create(
-      [
-        {
-           senderId: sender,
-          receiverId:receiver
-        },
-      ],
-      { session }
-    );
+        
+
+        const createFriendShip = await Friendship.create(
+            [
+                {
+                    senderId: sender,
+                    receiverId: receiver
+                },
+            ],
+            { session }
+        );
+
+        await FriendRequest.deleteOne({ _id: request._id }).session(session)
+        await session.commitTransaction()
+        session.endSession()
+
+
+        res.status(200).json(
+            new ApiResponse(200, createFriendShip, "friend request accepted successfully")
+        )
 
     } catch (error) {
- await session.abortTransaction();
-    session.endSession();
-    throw error;
+        await session.abortTransaction();
+        session.endSession();
+        throw error;
+    }
+})
+
+const rejectFriendRequest = asyncHandler(async (req, res) => {
+
+    const currentuserId = req.myUser?._id
+    const requestId = req.params.id
+
+    if (!requestId) {
+        throw new ApiError(404, "friend id not found")
+    }
+
+    try {
+
+        const existingRequest = await FriendRequest.findById(requestId)
+
+        if (!existingRequest) {
+            throw new ApiError(404, "no friend request found")
+        }
+
+
+        if (existingRequest.receiverId.toString() !== currentuserId.toString()) {
+            throw new ApiError(401, "not authorizef to reject this request")
+        }
+
+        const deleteRequest = await FriendRequest.findByIdAndDelete(existingRequest._id)
+
+        res.status(200).json(
+            new ApiResponse(200, deleteRequest, "friend request delete successfully")
+        )
+    } catch (error) {
+        console.log("err while deleling friend request ", error);
+        throw new ApiError(500, "error occur while rejecting friend request")
+    }
+})
+
+const getAllIncomingFriendRequest = asyncHandler(async (req, res) => {
+    const userId = req.myUser?._id
+
+    try {
+        const user = await User.findById(userId)
+        if (!user) {
+            throw new ApiError(404, "user not found")
+        }
+
+        const incomingRequests = await FriendRequest.find(
+            {
+                receiverId: user?._id,
+                status: "pending",
+            }
+        ).populate("receiverId senderId", "username name").sort({ createdAt: -1 });
+
+        if (!incomingRequests) {
+            throw new ApiError(404, " no friend requests found")
+        }
+
+        res.status(200).json(
+            new ApiResponse(200, incomingRequests, "all incoming friend requests fetched successfully")
+        )
+
+    } catch (error) {
+        console.log("unable to find incoming friend requests", error);
+
+        throw new ApiError(500, "error while finding incoming friend requests")
+
+    }
+})
+
+const getAllOutgoingFriendRequest = asyncHandler(async (req, res) => {
+    const userId = req?.myUser?._id
+
+    try {
+        const user = await User.findById(userId)
+        if (!user) {
+            throw new ApiError(404, "user not found")
+        }
+
+        const outgoingRequests = await FriendRequest.find(
+            {
+                senderId: user?._id,
+                status: "pending"
+            }
+        ).populate("senderId receiverId", "username name").sort({ createdAt: -1 })
+
+        if (!outgoingRequests) {
+            throw new ApiError(404, "no outgoing friend request found")
+        }
+        res.status(200).json(
+            new ApiResponse(200, outgoingRequests, "successfully fetched all outgoing friend requests")
+        )
+    } catch (error) {
+        console.log("err while fetching all outgoing friend requests", error);
+        throw new ApiError(500, "unable to fetch outgoing friend requests")
+
     }
 })
 
 
 
-export { sendFriendRequest, acceptFriendRequest }
+export { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getAllIncomingFriendRequest, getAllOutgoingFriendRequest }
