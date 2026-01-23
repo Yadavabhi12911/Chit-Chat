@@ -95,14 +95,14 @@ const acceptFriendRequest = asyncHandler(async (req, res) => {
             throw new ApiError(409, "Friend request already processed");
         }
 
-      
+
         function sortId(a, b) {
             return a.toString() < b.toString() ? [a, b] : [b, a]
         }
 
         const [sender, receiver] = sortId(request.senderId, request.receiverId)
 
-        
+
 
         const createFriendShip = await Friendship.create(
             [
@@ -224,6 +224,76 @@ const getAllOutgoingFriendRequest = asyncHandler(async (req, res) => {
     }
 })
 
+const getFriendsList = asyncHandler(async (req, res) => {
+    const userId = req?.myUser?._id
+    try {
+        const user = await User.findById(userId)
+        if (!userId) {
+            throw new ApiError(404, "user not found")
+        }
+
+        const friendsList = await Friendship.find(
+            {
+                $or: [
+                    { senderId: user?._id },
+                    { receiverId: user?._id }
+                ]
+            }
+        ).populate("senderId receiverId", "name  username").sort({ createdAt: -1 })
+
+        if (!friendsList) {
+            throw new ApiError(404, "no friends founds")
+        }
+        res.status(200).json(
+            new ApiResponse(200, friendsList, "successfully fetched friend list")
+        )
+    } catch (error) {
+        console.log("error while fetching all frind list ", error);
+        throw new ApiError(500, "unable to fetch frind list")
+
+    }
+
+})
+
+const unfriend = asyncHandler(async (req, res) => {
+    const currentUserId = req?.myUser?._id
+    const friendId = req.params.friendId
+
+    if (!friendId) {
+        throw new ApiError(404, "friendId not found")
+    }
+
+    function sortId(a, b) {
+        return a.toString() < b.toString() ? [a, b] : [b, a]
+    }
+ 
+    const [friend1 , friend2] = sortId(currentUserId, friendId)
+
+    try {
+        const removeFriend = await Friendship.deleteOne(
+            {
+                senderId:friend1, 
+                receiverId:friend2
+            }
+        )
+
+        if(!removeFriend){
+            throw new ApiError(400, "remove friend failed")
+        }
+
+        res.status(200).json(
+            new ApiResponse(200, "remove friend Success")
+        )
+        
+    } catch (error) {
+        console.log("err while removing friend", error);
+        throw new ApiError(500, "unable to remove friend from friendList")
+        
+    }
 
 
-export { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getAllIncomingFriendRequest, getAllOutgoingFriendRequest }
+})
+
+
+
+export { sendFriendRequest, acceptFriendRequest, rejectFriendRequest, getAllIncomingFriendRequest, getAllOutgoingFriendRequest, getFriendsList, unfriend }
