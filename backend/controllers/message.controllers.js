@@ -13,7 +13,7 @@ export const sendMessage = asyncHandler(async (req, res) => {
             senderId,
             receiverId,
             content,
-            expiredAt
+            expiredAt: new Date(expiredAt)
 
         });
 
