@@ -32,39 +32,69 @@ const register = asyncHandler(async (req, res) => {
 
     const { name, username, email, password } = req.body
 
-    let imageLocalPath = req.file.path
-    if (!imageLocalPath) throw new ApiError(404, "no such image localPath found!")
+    // Validate required fields
+    if (!name || !username || !email || !password) {
+        throw new ApiError(400, "All fields are required")
+    }
 
+    // Check if user already exists
     let existingUser = await User.findOne({
         $or: [{ email }, { username }]
     })
 
     if (existingUser) {
-        throw new ApiError(400, "user already exist")
+        throw new ApiError(400, "User already exists with this email or username")
     }
 
-    const image = await uploadImageOnCloudinary(imageLocalPath)
+    // Handle avatar upload
+    let avatarData = null;
+    if (req.file && req.file.path) {
+        try {
+            const image = await uploadImageOnCloudinary(req.file.path)
+            if (image && image.secure_url) {
+                avatarData = {
+                    secure_url: image.secure_url,
+                    public_id: image.public_id
+                }
+            }
+        } catch (error) {
+            console.error("Error uploading avatar:", error)
+            throw new ApiError(500, "Error uploading profile picture")
+        }
+    } else {
+        throw new ApiError(400, "Profile picture is required")
+    }
 
+    // Create user
     const createUser = await User.create({
         name,
         username,
         email,
         password,
-        avatar: {
-            secure_url: image.secure_url,
-            public_id: image.public_id
-        }
+        avatar: avatarData
     })
 
     if (!createUser) {
-        throw new ApiError(false, 500, "user not created")
+        throw new ApiError(500, "User not created")
     }
 
-    let user = await User.findOne({ email }).select("-password -refreshToken")
+    // Generate tokens for auto-login after registration
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(createUser._id)
 
-    res.status(201).json(
-        new ApiResponse(201, user, "user register successfully")
-    )
+    const options = {
+        httpOnly: true,
+        secure: false,
+        maxAge: 15 * 60 * 1000
+    }
+
+    let user = await User.findById(createUser._id).select("-password -refreshToken")
+
+    res.status(201)
+        .cookie("accessToken", accessToken, options)
+        .cookie("refreshToken", refreshToken, options)
+        .json(
+            new ApiResponse(201, user, "User registered successfully")
+        )
 
 
 })
