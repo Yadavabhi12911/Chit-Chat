@@ -1,24 +1,11 @@
-import { useEffect } from "react";
-import { io } from "socket.io-client";
-
-const socket = io("http://localhost:3000");
+import React from 'react'
 
 const Home = () => {
-  useEffect(() => {
-    socket.on("connect", () => {
-      console.log("Connected to server:", socket.id);
-    });
+  return (
+    <div>
+      <h1>Home...</h1>
+    </div>
+  )
+}
 
-    socket.on("chat message", (msg) => {
-      console.log("Message from server:", msg);
-    });
-
-    return () => {
-      socket.off("chat message");
-    };
-  }, []);
-
-  return <div>Home page ......</div>;
-};
-
-export default Home;
+export default Home
