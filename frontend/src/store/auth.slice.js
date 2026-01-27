@@ -94,11 +94,11 @@ const authSlice = createSlice({
     clearError: (state) => {
       state.error = null;
     },
-    login: (state, action) => {
+    setUser: (state, action) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
     },
-    logout: (state) => {
+    clearAuth: (state) => {
       state.user = null;
       state.isAuthenticated = false;
       state.error = null;

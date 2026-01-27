@@ -1,9 +1,10 @@
 import React from 'react'
+import Resgister from './Resgister'
 
 const Home = () => {
   return (
     <div>
-      <h1>Home...</h1>
+      <Resgister/>
     </div>
   )
 }
