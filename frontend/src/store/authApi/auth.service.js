@@ -1,4 +1,4 @@
-import { AxiosIntance } from '../context/axiosintance';
+import { AxiosIntance } from '../../context/axiosintance';
 
 const API_BASE = '/api/v1/users';
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
-import { login } from "../store/auth.slice";
+import { login } from "../store/authApi/auth.slice";
 import Toast from "../components/Toast";
 
 const Login = () => {
@@ -13,7 +13,9 @@ const Login = () => {
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
+  const { isLoading, error, isAuthenticated } = useSelector(
+    (state) => state.auth,
+  );
 
   // Navigate when login is successful
   useEffect(() => {
@@ -21,10 +23,10 @@ const Login = () => {
       setToastMessage("Welcome back to ChitChat! 🎉");
       setToastType("success");
       setShowToast(true);
-      // Navigate after showing toast
-      setTimeout(() => {
-        navigate("/");
-      }, 2000);
+
+     setTimeout(() => {
+       navigate("/home");
+     }, 1000)
     }
   }, [isAuthenticated, navigate]);
 
@@ -32,10 +34,12 @@ const Login = () => {
     e.preventDefault();
     setShowToast(false);
 
-    await dispatch(login({
-      email,
-      password
-    }));
+    await dispatch(
+      login({
+        email,
+        password,
+      }),
+    );
   };
 
   // Show error toast when there's an error
@@ -56,20 +60,19 @@ const Login = () => {
           onClose={() => setShowToast(false)}
         />
       )}
-      
+
       <div className="w-full max-w-md bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 p-8">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
-            Welcome Back
-          </h1>
-          <p className="text-white/80 text-sm">
-            Sign in to continue chatting
-          </p>
+          <h1 className="text-4xl font-bold text-white mb-2">Welcome Back</h1>
+          <p className="text-white/80 text-sm">Sign in to continue chatting</p>
         </div>
 
         <form onSubmit={handleFormSubmit} className="space-y-5">
           <div className="space-y-2">
-            <label htmlFor="email" className="block text-white/90 text-sm font-medium">
+            <label
+              htmlFor="email"
+              className="block text-white/90 text-sm font-medium"
+            >
               Email
             </label>
             <input
@@ -84,7 +87,10 @@ const Login = () => {
           </div>
 
           <div className="space-y-2">
-            <label htmlFor="password" className="block text-white/90 text-sm font-medium">
+            <label
+              htmlFor="password"
+              className="block text-white/90 text-sm font-medium"
+            >
               Password
             </label>
             <input
@@ -105,9 +111,25 @@ const Login = () => {
           >
             {isLoading ? (
               <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                <svg
+                  className="animate-spin h-5 w-5"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
                 </svg>
                 Signing in...
               </span>
@@ -119,7 +141,10 @@ const Login = () => {
           <div className="text-center pt-4">
             <p className="text-white/70 text-sm">
               Don't have an account?{" "}
-              <Link to="/register" className="text-cyan-300 hover:text-cyan-200 font-medium transition-colors">
+              <Link
+                to="/register"
+                className="text-cyan-300 hover:text-cyan-200 font-medium transition-colors"
+              >
                 Register
               </Link>
             </p>
