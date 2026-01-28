@@ -260,8 +260,16 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 })
 
+const currentUser = asyncHandler( async (req, res) => {
+    const user = req.myUser
+
+    res.status(200).json(
+        new ApiResponse(200, user, "current user fetched successfully")
+    )
+})
 
 
 
 
-export { register, login, logout, updatePhoto, deletePhoto, refreshAccessToken }
+
+export { register, login, logout, updatePhoto, deletePhoto, refreshAccessToken, currentUser }
