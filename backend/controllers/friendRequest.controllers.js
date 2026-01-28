@@ -239,7 +239,7 @@ const getFriendsList = asyncHandler(async (req, res) => {
                     { receiverId: user?._id }
                 ]
             }
-        ).populate("senderId receiverId", "name  username").sort({ createdAt: -1 })
+        ).populate("senderId receiverId", "name  username avatar").sort({ createdAt: -1 })
 
         if (!friendsList) {
             throw new ApiError(404, "no friends founds")
