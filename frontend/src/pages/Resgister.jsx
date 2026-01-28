@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
-import { register } from "../store/auth.slice";
+import { register } from "../store/authApi/auth.slice";
 import Toast from "../components/Toast";
 
 const Resgister = () => {
@@ -28,7 +28,7 @@ const Resgister = () => {
       setShowToast(true);
       // Navigate after showing toast
       setTimeout(() => {
-        navigate("/");
+        navigate("/login");
       }, 2000);
     }
   }, [isAuthenticated, navigate]);
