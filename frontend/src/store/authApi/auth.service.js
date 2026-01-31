@@ -47,3 +47,22 @@ export const getCurrentUser = async () => {
   const response = await AxiosIntance.get(`${API_BASE}/me`);
   return response;
 };
+
+export const updateProfilePhoto = async (file) => {
+  const formData = new FormData();
+  formData.append('newImage', file);
+  const response = await AxiosIntance.post(`${API_BASE}/update-profile-photo`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response;
+};
+
+export const deleteProfilePhoto = async () => {
+  const response = await AxiosIntance.post(`${API_BASE}/delete-profile-photo`);
+  return response;
+};
+
+export const updateProfileName = async (name) => {
+  const response = await AxiosIntance.patch(`${API_BASE}/update-name`, { name });
+  return response;
+};

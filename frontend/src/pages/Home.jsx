@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 import profileImage from "../assets/person.png";
 import logo from "../assets/chat.png";
 import {
@@ -6,7 +8,13 @@ import {
   getFriends,
 } from "../store/friendsApi/friends.slice";
 import { useDispatch, useSelector } from "react-redux";
-import { checkAuth } from "../store/authApi/auth.slice";
+import {
+  checkAuth,
+  logout,
+  updatePhoto,
+  deletePhoto,
+  updateName,
+} from "../store/authApi/auth.slice";
 
 // Utility function to format dates
 const formatDate = (dateString) => {
@@ -28,23 +36,52 @@ const DEFAULT_AVATAR = profileImage;
 const Home = () => {
   const [selectedChat, setSelectedChat] = useState(null);
   const [activeTab, setActiveTab] = useState("chat"); // "chat" | "friendRequests"
-  const [user, setUser] = useState(null);
-  
+  const [profileClick, setProfileClick] = useState(false);
+  const [showUpdateProfile, setShowUpdateProfile] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+  const fileInputRef = useRef(null);
+  const profileDropdownRef = useRef(null);
 
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { friends, isLoading, friendRequests, error } = useSelector(
     (state) => state.friends,
   );
+  const authUser = useSelector((state) => state.auth?.user);
+  const user = authUser || null;
 
   useEffect(() => {
-    const getCurrentUser = async () => {
-      const res = await dispatch(checkAuth());
-      if (res.payload?.data) {
-        setUser(res.payload.data);
+    dispatch(checkAuth());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (showUpdateProfile && user?.name) {
+      setEditName(user.name);
+    }
+  }, [showUpdateProfile, user?.name]);
+
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === "Escape") {
+        setShowUpdateProfile(false);
       }
     };
-    getCurrentUser();
-  }, [dispatch]);
+    if (showUpdateProfile) {
+      document.addEventListener("keydown", handleEscape);
+      return () => document.removeEventListener("keydown", handleEscape);
+    }
+  }, [showUpdateProfile]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileClick && profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
+        setProfileClick(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [profileClick]);
 
   useEffect(() => {
     const fetchFriendList = async () => {
@@ -55,14 +92,66 @@ const Home = () => {
 
   useEffect(() => {
     const fetchFriendRequestList = async () => {
-      const res = await dispatch(getAllIncomingFriendRequest())
-      
+      await dispatch(getAllIncomingFriendRequest());
     };
-
     fetchFriendRequestList();
   }, [dispatch]);
 
-  
+  const handleLogout = async () => {
+    await dispatch(logout());
+    setProfileClick(false);
+    toast.info("Logged out successfully");
+    navigate("/login");
+  };
+
+  const handleUpdateProfileClick = () => {
+    setShowUpdateProfile(true);
+    setProfileClick(false);
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !file.type.startsWith("image/")) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+    setIsSaving(true);
+    const res = await dispatch(updatePhoto(file));
+    setIsSaving(false);
+    if (res.type?.endsWith("/rejected")) {
+      toast.error(res.payload || "Failed to update photo");
+    } else {
+      toast.success("Photo updated successfully");
+    }
+    e.target.value = "";
+  };
+
+  const handleDeletePhoto = async () => {
+    setIsSaving(true);
+    const res = await dispatch(deletePhoto());
+    setIsSaving(false);
+    if (res.type?.endsWith("/rejected")) {
+      toast.error(res.payload || "Failed to delete photo");
+    } else {
+      toast.success("Photo removed successfully");
+    }
+  };
+
+  const handleSaveName = async () => {
+    const trimmed = editName?.trim();
+    if (!trimmed || trimmed.length < 3) {
+      toast.error("Name must be at least 3 characters");
+      return;
+    }
+    setIsSaving(true);
+    const res = await dispatch(updateName(trimmed));
+    setIsSaving(false);
+    if (res.type?.endsWith("/rejected")) {
+      toast.error(res.payload || "Failed to update name");
+    } else {
+      toast.success("Name updated successfully");
+    }
+  };
 
   return (
     <div className="h-screen flex flex-row bg-cyan-950 text-white">
@@ -178,20 +267,168 @@ const Home = () => {
               Friend Requests
             </button>
 
-            {/* Current user profile */}
-            <div className="flex items-center gap-3 pl-4 border-l border-cyan-800">
-              <span className="text-sm text-cyan-100">{user?.name}</span>
-              <img
-                src={user?.avatar?.secure_url || DEFAULT_AVATAR}
-                alt="Profile"
-                className="h-10 w-10 rounded-full object-cover border-2 border-cyan-500"
-                onError={(e) => {
-                  e.target.src = DEFAULT_AVATAR;
-                }}
-              />
+            {/* Current user profile - dropdown */}
+            <div className="relative" ref={profileDropdownRef}>
+              <button
+                onClick={() => setProfileClick(!profileClick)}
+                className="flex items-center gap-3 pl-4 border-l border-cyan-800 hover:opacity-90 transition-opacity"
+              >
+                <span className="text-sm text-cyan-100">{user?.name}</span>
+                <img
+                  src={user?.avatar?.secure_url || DEFAULT_AVATAR}
+                  alt="Profile"
+                  className="h-10 w-10 rounded-full object-cover border-2 border-cyan-500"
+                  onError={(e) => {
+                    e.target.src = DEFAULT_AVATAR;
+                  }}
+                />
+              </button>
+              {profileClick && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-cyan-900 border border-cyan-700 rounded-xl shadow-xl py-2 z-50 overflow-hidden">
+                  <button
+                    onClick={handleUpdateProfileClick}
+                    className="w-full px-4 py-2.5 text-left text-sm text-cyan-100 hover:bg-cyan-800 transition-colors flex items-center gap-2"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
+                    </svg>
+                    Update Profile
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2.5 text-left text-sm text-red-200 hover:bg-cyan-800 hover:text-red-100 transition-colors flex items-center gap-2"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                      />
+                    </svg>
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Update Profile Modal */}
+        {showUpdateProfile && (
+          <div
+            className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+            onClick={() => setShowUpdateProfile(false)}
+          >
+            <div
+              className="bg-cyan-900 border border-cyan-700 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+            >
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-xl font-semibold text-white">
+                    Update Profile
+                  </h2>
+                  <button
+                    onClick={() => setShowUpdateProfile(false)}
+                    className="p-2 rounded-full hover:bg-cyan-800 text-cyan-200 transition-colors"
+                    aria-label="Close"
+                  >
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Profile picture section */}
+                <div className="flex flex-col items-center mb-6">
+                  <div className="relative group">
+                    <img
+                      src={user?.avatar?.secure_url || DEFAULT_AVATAR}
+                      alt="Profile"
+                      className="h-24 w-24 rounded-full object-cover border-4 border-cyan-500"
+                      onError={(e) => {
+                        e.target.src = DEFAULT_AVATAR;
+                      }}
+                    />
+                  </div>
+                  <div className="flex gap-3 mt-4">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isSaving}
+                      className="px-4 py-2 rounded-full bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-cyan-950 text-sm font-medium transition-colors"
+                    >
+                      {isSaving ? "Uploading..." : "Change Photo"}
+                    </button>
+                    <button
+                      onClick={handleDeletePhoto}
+                      disabled={isSaving || !user?.avatar?.secure_url}
+                      className="px-4 py-2 rounded-full border border-cyan-600 text-cyan-200 hover:bg-cyan-800 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium transition-colors"
+                    >
+                      Delete Photo
+                    </button>
+                  </div>
+                </div>
+
+                {/* Name section */}
+                <div>
+                  <label className="block text-sm font-medium text-cyan-200 mb-2">
+                    Display Name
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="Enter your name"
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-cyan-950 border border-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 text-white placeholder:text-cyan-400"
+                    />
+                    <button
+                      onClick={handleSaveName}
+                      disabled={isSaving}
+                      className="px-5 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-cyan-950 font-medium transition-colors"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Content area */}
         {activeTab === "friendRequests" ? (
@@ -202,7 +439,9 @@ const Home = () => {
               </h2>
               {isLoading ? (
                 <div className="flex items-center justify-center py-8">
-                  <div className="text-cyan-300 text-sm">Loading friend requests...</div>
+                  <div className="text-cyan-300 text-sm">
+                    Loading friend requests...
+                  </div>
                 </div>
               ) : error ? (
                 <div className="p-4 bg-red-900/30 border border-red-700 rounded-lg text-red-200 text-sm">
@@ -212,7 +451,9 @@ const Home = () => {
                 <div className="flex items-center justify-center py-8 text-cyan-300 text-center">
                   <div>
                     <div className="text-sm mb-2">No friend requests</div>
-                    <div className="text-xs text-cyan-400">When someone sends you a request, it will appear here</div>
+                    <div className="text-xs text-cyan-400">
+                      When someone sends you a request, it will appear here
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -224,7 +465,10 @@ const Home = () => {
                     >
                       <div className="flex items-center gap-3">
                         <img
-                          src={request.senderId?.avatar?.secure_url || DEFAULT_AVATAR}
+                          src={
+                            request.senderId?.avatar?.secure_url ||
+                            DEFAULT_AVATAR
+                          }
                           alt={request.senderId?.name || "User"}
                           className="h-10 w-10 rounded-full object-cover border-2 border-cyan-500"
                           onError={(e) => {
@@ -232,22 +476,28 @@ const Home = () => {
                           }}
                         />
                         <div>
-                          <div className="font-medium">{request.senderId?.name || "Unknown User"}</div>
+                          <div className="font-medium">
+                            {request.senderId?.name || "Unknown User"}
+                          </div>
                           <div className="text-xs text-cyan-200">
                             {request.senderId?.friendsCount || 0} friends
                           </div>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button 
+                        <button
                           className="px-3 py-1 text-xs font-medium rounded-full bg-cyan-500 text-cyan-950 hover:bg-cyan-400 transition-colors"
-                          onClick={() => console.log('Accept friend request:', request._id)}
+                          onClick={() =>
+                            console.log("Accept friend request:", request._id)
+                          }
                         >
                           Accept
                         </button>
-                        <button 
+                        <button
                           className="px-3 py-1 text-xs font-medium rounded-full border border-cyan-600 text-cyan-100 hover:bg-cyan-900 transition-colors"
-                          onClick={() => console.log('Decline friend request:', request._id)}
+                          onClick={() =>
+                            console.log("Decline friend request:", request._id)
+                          }
                         >
                           Decline
                         </button>
