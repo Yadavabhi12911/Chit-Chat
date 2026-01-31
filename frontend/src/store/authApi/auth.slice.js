@@ -4,7 +4,10 @@ import {
   registerUser, 
   logoutUser, 
   refreshAccessToken,
-  getCurrentUser 
+  getCurrentUser,
+  updateProfilePhoto,
+  deleteProfilePhoto,
+  updateProfileName
 } from './auth.service';
 
 // Initial state
@@ -81,6 +84,48 @@ export const checkAuth = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || error.message || 'Auth check failed'
+      );
+    }
+  }
+);
+
+export const updatePhoto = createAsyncThunk(
+  'auth/updatePhoto',
+  async (file, { rejectWithValue }) => {
+    try {
+      const response = await updateProfilePhoto(file);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to update photo'
+      );
+    }
+  }
+);
+
+export const deletePhoto = createAsyncThunk(
+  'auth/deletePhoto',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await deleteProfilePhoto();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to delete photo'
+      );
+    }
+  }
+);
+
+export const updateName = createAsyncThunk(
+  'auth/updateName',
+  async (name, { rejectWithValue }) => {
+    try {
+      const response = await updateProfileName(name);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || error.message || 'Failed to update name'
       );
     }
   }
@@ -194,6 +239,25 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = false;
         state.user = null;
+      });
+
+    // Update Photo
+    builder
+      .addCase(updatePhoto.fulfilled, (state, action) => {
+        state.user = action.payload?.data?.user || action.payload?.user || state.user;
+      });
+
+    // Delete Photo
+    builder
+      .addCase(deletePhoto.fulfilled, (state, action) => {
+        state.user = action.payload?.data?.user || action.payload?.user || state.user;
+        if (state.user) state.user.avatar = null;
+      });
+
+    // Update Name
+    builder
+      .addCase(updateName.fulfilled, (state, action) => {
+        state.user = action.payload?.data?.user || action.payload?.user || state.user;
       });
   },
 });

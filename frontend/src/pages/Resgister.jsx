@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import { register } from "../store/authApi/auth.slice";
-import Toast from "../components/Toast";
 
 const Resgister = () => {
   const [name, setName] = useState("");
@@ -11,10 +11,6 @@ const Resgister = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [avatar, setAvatar] = useState(null);
-  const [validationError, setValidationError] = useState("");
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState("success");
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -23,10 +19,7 @@ const Resgister = () => {
   // Navigate when registration is successful
   useEffect(() => {
     if (isAuthenticated) {
-      setToastMessage("Account created successfully! Welcome to ChitChat 🎉");
-      setToastType("success");
-      setShowToast(true);
-      // Navigate after showing toast
+      toast.success("Account created successfully! Welcome to ChitChat 🎉");
       setTimeout(() => {
         navigate("/login");
       }, 2000);
@@ -35,11 +28,9 @@ const Resgister = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    setValidationError("");
-    setShowToast(false);
 
     if (password !== confirmPassword) {
-      setValidationError("Passwords do not match");
+      toast.error("Passwords do not match");
       return;
     }
 
@@ -55,22 +46,12 @@ const Resgister = () => {
   // Show error toast when there's an error
   useEffect(() => {
     if (error && !isLoading) {
-      setToastMessage(error);
-      setToastType("error");
-      setShowToast(true);
+      toast.error(error);
     }
   }, [error, isLoading]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-950 to-cyan-900 flex items-center justify-center p-4">
-      {showToast && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
-      )}
-      
       <div className="w-full max-w-md bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 p-6">
         <div className="text-center mb-4">
           <h1 className="text-3xl font-bold text-white mb-1">
@@ -82,12 +63,6 @@ const Resgister = () => {
         </div>
 
         <form onSubmit={handleFormSubmit} className="space-y-3">
-          {validationError && (
-            <div className="bg-red-500/20 border border-red-500 text-red-200 px-3 py-2 rounded-lg text-xs">
-              {validationError}
-            </div>
-          )}
-
           <div className="space-y-1">
             <label htmlFor="name" className="block text-white/90 text-xs font-medium">
               Full Name

@@ -161,7 +161,7 @@ const logout = asyncHandler(async (req, res) => {
 const updatePhoto = asyncHandler(async (req, res) => {
     const userId = req.myUser?._id
 
-    const imageLocalPath = req.file.path
+    const imageLocalPath = req.file?.path
     if (!imageLocalPath) {
         throw new ApiError(404, "no such image localPath found!")
 
@@ -173,11 +173,11 @@ const updatePhoto = asyncHandler(async (req, res) => {
 
     }
 
-    const deleteImage = await deleteImageFromCloudinary(user?.avatar?.public_id)
-
-
-    if (!deleteImage) {
-        throw new ApiError(500, "unable to delete image ")
+    if (user?.avatar?.public_id) {
+        const deleteImage = await deleteImageFromCloudinary(user.avatar.public_id)
+        if (!deleteImage) {
+            throw new ApiError(500, "unable to delete image ")
+        }
     }
 
     const newImageUpload = await uploadImageOnCloudinary(imageLocalPath)
@@ -193,9 +193,10 @@ const updatePhoto = asyncHandler(async (req, res) => {
     }
     await user.save()
 
+    const updatedUser = await User.findById(userId).select("-password -refreshToken")
 
     res.status(200).json(
-        new ApiResponse(200, { user }, "image updated successfully")
+        new ApiResponse(200, { user: updatedUser }, "image updated successfully")
     )
 
 })
@@ -209,14 +210,20 @@ const deletePhoto = asyncHandler(async (req, res) => {
         throw new ApiError(404, "user not found")
     }
 
-    const imageDeleted = await deleteImageFromCloudinary(user?.avatar?.public_id)
-
-    if (!imageDeleted) {
-        throw new ApiError(500, "unable to delete image")
+    if (user?.avatar?.public_id) {
+        const imageDeleted = await deleteImageFromCloudinary(user.avatar.public_id)
+        if (!imageDeleted) {
+            throw new ApiError(500, "unable to delete image")
+        }
     }
 
+    user.avatar = null
+    await user.save()
+
+    const updatedUser = await User.findById(userId).select("-password -refreshToken")
+
     res.status(200).json(
-        new ApiResponse(200, "image deleted successfully")
+        new ApiResponse(200, { user: updatedUser }, "image deleted successfully")
     )
 })
 
@@ -268,8 +275,27 @@ const currentUser = asyncHandler( async (req, res) => {
     )
 })
 
+const updateName = asyncHandler(async (req, res) => {
+    const userId = req?.myUser?._id
+    const { name } = req.body
 
+    if (!name || name.trim().length < 3) {
+        throw new ApiError(400, "Name must be at least 3 characters")
+    }
 
+    const user = await User.findByIdAndUpdate(
+        userId,
+        { name: name.trim() },
+        { new: true }
+    ).select("-password -refreshToken")
 
+    if (!user) {
+        throw new ApiError(404, "user not found")
+    }
 
-export { register, login, logout, updatePhoto, deletePhoto, refreshAccessToken, currentUser }
+    res.status(200).json(
+        new ApiResponse(200, { user }, "Name updated successfully")
+    )
+})
+
+export { register, login, logout, updatePhoto, deletePhoto, updateName, refreshAccessToken, currentUser }

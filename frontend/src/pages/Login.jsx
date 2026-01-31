@@ -1,15 +1,12 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import { login } from "../store/authApi/auth.slice";
-import Toast from "../components/Toast";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [showToast, setShowToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastType, setToastType] = useState("success");
 
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -20,20 +17,15 @@ const Login = () => {
   // Navigate when login is successful
   useEffect(() => {
     if (isAuthenticated) {
-      setToastMessage("Welcome back to ChitChat! 🎉");
-      setToastType("success");
-      setShowToast(true);
-
-     setTimeout(() => {
-       navigate("/home");
-     }, 1000)
+      toast.success("Welcome back to ChitChat! 🎉");
+      setTimeout(() => {
+        navigate("/home");
+      }, 1000);
     }
   }, [isAuthenticated, navigate]);
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-    setShowToast(false);
-
     await dispatch(
       login({
         email,
@@ -45,22 +37,12 @@ const Login = () => {
   // Show error toast when there's an error
   useEffect(() => {
     if (error && !isLoading) {
-      setToastMessage(error);
-      setToastType("error");
-      setShowToast(true);
+      toast.error(error);
     }
   }, [error, isLoading]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-950 to-cyan-900 flex items-center justify-center p-4">
-      {showToast && (
-        <Toast
-          message={toastMessage}
-          type={toastType}
-          onClose={() => setShowToast(false)}
-        />
-      )}
-
       <div className="w-full max-w-md bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 p-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-2">Welcome Back</h1>
