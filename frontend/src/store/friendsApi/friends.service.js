@@ -1,13 +1,13 @@
 
-import { AxiosIntance} from "../../context/axiosintance"
+import { AxiosInstance } from "../../context/axiosInstance";
 
 const API_BASE = '/api/v1/friendship';
 
 export const fetchUserFriends = async () => {
-    const response = await AxiosIntance.get(`${API_BASE}/get-friend-list`)
+    const response = await AxiosInstance.get(`${API_BASE}/get-friend-list`)
     return response;
 }
 export const fetchIncomingFriendRequest = async () => {
-    const response = await AxiosIntance.get(`${API_BASE}/friend-request/incoming`)
+    const response = await AxiosInstance.get(`${API_BASE}/friend-request/incoming`)
     return response
 }

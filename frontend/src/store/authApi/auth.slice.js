@@ -10,9 +10,10 @@ import {
   updateProfileName
 } from './auth.service';
 
-// Initial state
+// Initial state (accessToken is in memory only, for socket handshake; not persisted)
 const initialState = {
   user: null,
+  accessToken: null,
   isAuthenticated: false,
   isLoading: false,
   error: null,
@@ -145,6 +146,7 @@ const authSlice = createSlice({
     },
     clearAuth: (state) => {
       state.user = null;
+      state.accessToken = null;
       state.isAuthenticated = false;
       state.error = null;
     },
@@ -160,12 +162,14 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = true;
         state.user = action.payload?.data || action.payload;
+        state.accessToken = action.payload?.accessToken ?? null;
         state.error = null;
       })
       .addCase(login.rejected, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = false;
         state.user = null;
+        state.accessToken = null;
         state.error = action.payload;
       });
 
@@ -179,12 +183,14 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = true;
         state.user = action.payload?.data || action.payload;
+        state.accessToken = action.payload?.accessToken ?? null;
         state.error = null;
       })
       .addCase(register.rejected, (state, action) => {
         state.isLoading = false;
         state.isAuthenticated = false;
         state.user = null;
+        state.accessToken = null;
         state.error = action.payload;
       });
 
@@ -197,12 +203,13 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = false;
         state.user = null;
+        state.accessToken = null;
         state.error = null;
       })
       .addCase(logout.rejected, (state, action) => {
         state.isLoading = false;
+        state.accessToken = null;
         state.error = action.payload;
-        // Still clear auth on logout error
         state.isAuthenticated = false;
         state.user = null;
       });
@@ -233,6 +240,7 @@ const authSlice = createSlice({
         state.isLoading = false;
         state.isAuthenticated = true;
         state.user = action.payload?.data || action.payload;
+        state.accessToken = action.payload?.accessToken ?? null;
         state.error = null;
       })
       .addCase(checkAuth.rejected, (state) => {
