@@ -4,7 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 import { register } from "../store/authApi/auth.slice";
 
-const Resgister = () => {
+const Register = () => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
@@ -16,7 +16,6 @@ const Resgister = () => {
   const navigate = useNavigate();
   const { isLoading, error, isAuthenticated } = useSelector((state) => state.auth);
 
-  // Navigate when registration is successful
   useEffect(() => {
     if (isAuthenticated) {
       toast.success("Account created successfully! Welcome to ChitChat 🎉");
@@ -43,7 +42,6 @@ const Resgister = () => {
     }));
   };
 
-  // Show error toast when there's an error
   useEffect(() => {
     if (error && !isLoading) {
       toast.error(error);
@@ -184,4 +182,4 @@ const Resgister = () => {
   );
 };
 
-export default Resgister;
+export default Register;

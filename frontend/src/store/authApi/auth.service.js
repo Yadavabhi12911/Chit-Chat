@@ -1,10 +1,10 @@
-import { AxiosIntance } from '../../context/axiosintance';
+import { AxiosInstance } from "../../context/axiosInstance";
 
 const API_BASE = '/api/v1/users';
 
 
 export const loginUser = async (email, password) => {
-  const response = await AxiosIntance.post(`${API_BASE}/login`, {
+  const response = await AxiosInstance.post(`${API_BASE}/login`, {
     email,
     password,
   });
@@ -22,7 +22,7 @@ export const registerUser = async (name, username, email, password, avatar) => {
     formData.append('avatar', avatar);
   }
 
-  const response = await AxiosIntance.post(`${API_BASE}/register`, formData, {
+  const response = await AxiosInstance.post(`${API_BASE}/register`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data',
     },
@@ -32,37 +32,37 @@ export const registerUser = async (name, username, email, password, avatar) => {
 
 
 export const logoutUser = async () => {
-  const response = await AxiosIntance.post(`${API_BASE}/logout`);
+  const response = await AxiosInstance.post(`${API_BASE}/logout`);
   return response;
 };
 
 
 export const refreshAccessToken = async () => {
-  const response = await AxiosIntance.post(`${API_BASE}/refresh-token`);
+  const response = await AxiosInstance.post(`${API_BASE}/refresh-token`);
   return response;
 };
 
  
 export const getCurrentUser = async () => {
-  const response = await AxiosIntance.get(`${API_BASE}/me`);
+  const response = await AxiosInstance.get(`${API_BASE}/me`);
   return response;
 };
 
 export const updateProfilePhoto = async (file) => {
   const formData = new FormData();
   formData.append('newImage', file);
-  const response = await AxiosIntance.post(`${API_BASE}/update-profile-photo`, formData, {
+  const response = await AxiosInstance.post(`${API_BASE}/update-profile-photo`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response;
 };
 
 export const deleteProfilePhoto = async () => {
-  const response = await AxiosIntance.post(`${API_BASE}/delete-profile-photo`);
+  const response = await AxiosInstance.post(`${API_BASE}/delete-profile-photo`);
   return response;
 };
 
 export const updateProfileName = async (name) => {
-  const response = await AxiosIntance.patch(`${API_BASE}/update-name`, { name });
+  const response = await AxiosInstance.patch(`${API_BASE}/update-name`, { name });
   return response;
 };
